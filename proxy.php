@@ -17,6 +17,12 @@
  */
 
 /**
+ * Enables or disables filtering REFERER for cross domain requests.
+ * Recommended value: true
+ */
+define('CSAJAX_REFERER_FILTERS', true);
+
+/**
  * Enables or disables filtering for cross domain requests.
  * Recommended value: true
  */
@@ -28,6 +34,11 @@ define('CSAJAX_FILTERS', true);
  * Recommended value: false (for security reasons - do not forget that anyone can access your proxy)
  */
 define('CSAJAX_FILTER_DOMAIN', false);
+
+/**
+ * ADD "Access-Control-Allow-Origin: *" header
+*/
+define('CSAJAX_ADD_ALLOW_ORIGIN_HEADER', false);
 
 /**
  * Enables or disables Expect: 100-continue header. Some webservers don't 
@@ -49,6 +60,13 @@ $valid_requests = array(
 );
 
 /**
+ * A set of valid referers
+ */
+$valid_referers = array(
+    // 'example.com'
+);
+
+/**
  * Set extra multiple options for cURL
  * Could be used to define CURLOPT_SSL_VERIFYPEER & CURLOPT_SSL_VERIFYHOST for HTTPS
  * Also to overwrite any other options without changing the code
@@ -60,6 +78,16 @@ $curl_options = array(
 );
 
 /* * * STOP EDITING HERE UNLESS YOU KNOW WHAT YOU ARE DOING * * */
+
+if (CSAJAX_REFERER_FILTERS) {
+        $referer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : null;
+        $parsed_referer = parse_url($referer);
+        
+        if (!in_array($parsed_referer['host'], $valid_referers)) {
+            csajax_debug_message('Invalid referer domain - ' . $parsed_referer['host'] . ' does not included in valid requests');
+            exit;
+        }
+}
 
 // identify request headers
 $request_headers = array( );
@@ -186,6 +214,10 @@ foreach ($response_headers as $key => $response_header) {
     if (!preg_match('/^(Transfer-Encoding):/', $response_header)) {
         header($response_header, false);
     }
+}
+
+if (CSAJAX_ADD_ALLOW_ORIGIN_HEADER) {
+    header( "Access-Control-Allow-Origin: *" );
 }
 
 // finally, output the content
